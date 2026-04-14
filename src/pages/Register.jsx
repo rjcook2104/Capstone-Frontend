@@ -12,11 +12,39 @@ const Register = () => {
     password: '' 
   });
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    console.log("Registering user:", formData);
-    alert("Registration submitted for Manager approval.");
-    navigate('/');
+
+    const isManager = formData.role.toLowerCase() === 'manager';
+    
+    // Prepare payload for UserCreateView 
+    const payload = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password,
+      isManager: isManager
+    };
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/users/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Backend generates ID and returns it for the next login 
+        alert(`Registration Successful! ID: ${data.employee_id}`);
+        navigate('/');
+      }
+    } catch (error) {
+      console.log("Mock Registration: Data logged to console", payload);
+      alert("Mock Registration Complete (Backend not reached).");
+      navigate('/');
+    }
   };
 
   return (
