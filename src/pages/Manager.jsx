@@ -3,9 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import DeviceStatus from '../components/dashboard/DeviceStatus';
 import SearchBar from '../components/dashboard/SearchBar';
 
-const Manager = () => {
+const Manager = ({ setUserRole }) => {
   const navigate = useNavigate();
   
+  const handleLogout = async () => {
+    console.log("Button clicked: Initiating Logout Sequence");
+    try {
+      // Optional: Call the backend logout endpoint
+      await fetch('http://127.0.0.1:8000/api/users/logout/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // If using sessions/tokens, include them here
+        }
+      });
+    } catch (error) {
+      console.log("Mock Logout: Clearing local session.");
+    } finally {
+      // 1. Clear the global user role state
+      setUserRole(null);
+      // 2. Redirect the user back to the Login portal
+      navigate('/');
+    }
+  };
+
   const [activeTab, setActiveTab] = useState('feeds'); 
   // NEW: State to track which camera is focused/enlarged
   const [focusedCam, setFocusedCam] = useState(null);
@@ -111,9 +132,12 @@ const Manager = () => {
                 <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">System Nominal</span>
              </div>
-             <button className="bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold py-2 px-4 rounded-lg border border-slate-700 transition-all uppercase tracking-widest">
-                Export Shift Log
-             </button>
+             <button 
+                onClick={handleLogout}
+                className="bg-red-600/20 hover:bg-red-600 border border-red-600/50 text-red-500 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-widest"
+              >
+                Terminate Session
+              </button>
           </div>
         </header>
 
@@ -123,7 +147,7 @@ const Manager = () => {
               {/* DYNAMIC GRID LAYOUT */}
               <div className={`grid gap-6 transition-all duration-500 ${focusedCam ? 'grid-cols-1' : 'grid-cols-2 lg:grid-cols-3'}`}>
                 {[1, 2, 3, 4, 5, 6].map((i) => {
-                  // If a cam is focused, hide the others, or style them differently
+                  // If a cam is focused, hide the others
                   if (focusedCam && focusedCam !== i) return null;
 
                   return (

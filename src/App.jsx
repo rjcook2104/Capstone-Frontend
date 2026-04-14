@@ -1,30 +1,38 @@
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+
+// Import all pages
 import Login from './pages/Login';
 import Manager from './pages/Manager';
 import Learning from './pages/Learning';
+import Register from './pages/Register';
 
 function App() {
-  // Simulate user role: null, 'manager', or 'employee'
+  // This state controls access to protected routes
   const [userRole, setUserRole] = useState(null);
 
   return (
     <Router>
       <Routes>
-        {/* Pass the setter to Login so we can "sign in" as different people */}
+        {/* 1. PUBLIC ROUTES */}
         <Route path="/" element={<Login setUserRole={setUserRole} />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* PROTECTED: Only Managers can see this */}
+        {/* 2. PROTECTED ROUTES */}
+        {/* Manager Route: Now correctly passes the setter prop */}
         <Route 
           path="/manager" 
-          element={userRole === 'manager' ? <Manager /> : <Navigate to="/" />} 
+          element={userRole === 'manager' ? <Manager setUserRole={setUserRole} /> : <Navigate to="/" />} 
         />
-
-        {/* SHARED: Both can see this, but we can change the UI based on role */}
+        
+        {/* Learning Route: Added setUserRole here too so logout works from this page */}
         <Route 
           path="/learning" 
-          element={userRole ? <Learning userRole={userRole} /> : <Navigate to="/" />} 
+          element={userRole ? <Learning userRole={userRole} setUserRole={setUserRole} /> : <Navigate to="/" />} 
         />
+
+        {/* 3. CATCH-ALL */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );
