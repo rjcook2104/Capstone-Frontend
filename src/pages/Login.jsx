@@ -5,16 +5,46 @@ const Login = ({ setUserRole }) => {
   const navigate = useNavigate();
   const [idValue, setIdValue] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    
-    // Using idValue directly from state is cleaner
-    if (idValue.toUpperCase().includes('MANAGER')) {
+
+    // --- 1. MOCK LOGIC (For Testing/Quick Demo) ---
+    if (idValue.toUpperCase().includes('ADMIN') || idValue.toUpperCase().includes('MANAGER')) {
+      console.log("Mock Login: Manager Role Assigned");
       setUserRole('manager');
       navigate('/manager');
-    } else {
+      return; 
+    }
+    
+    if (idValue.toUpperCase().includes('EMP')) {
+      console.log("Mock Login: Employee Role Assigned");
       setUserRole('employee');
       navigate('/learning');
+      return;
+    }
+
+    // --- 2. BACKEND API LOGIC (Actual Integration) ---
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/users/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: idValue, 
+          e_password: passwordValue 
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Use the 'role' returned by the AuthenticationService [cite: 12]
+        setUserRole(data.is_manager ? 'manager' : 'employee'); 
+        navigate(data.is_manager ? '/manager' : '/learning');
+      } else {
+        alert("Invalid Employee ID or Password.");
+      }
+    } catch (error) {
+      console.error("Backend unreachable. Ensure Django is running.");
+      alert("Backend Error: Falling back to Mock Login for testing.");
     }
   };
 
