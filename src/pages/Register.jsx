@@ -19,12 +19,12 @@ const Register = () => {
     
     // Prepare payload for UserCreateView 
     const payload = {
-      e_firstname: formData.firstname,
-      e_lastname: formData.lastname,
-      e_email: formData.email,
-      e_phone: formData.phone,
-      e_password: formData.password,
-      is_manager: isManager
+      "e_firstname": formData.firstname,
+      "e_lastname": formData.lastname,
+      "e_email": formData.email,
+      "e_phone": formData.phone,
+      "e_password": formData.password,
+      "is_manager": isManager
     };
 
     try {
