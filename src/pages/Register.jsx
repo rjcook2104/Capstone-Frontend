@@ -4,27 +4,27 @@ import { useNavigate, Link } from 'react-router-dom';
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    firstname: '',
+    lastname: '',
     email: '',
     phone: '',
-    role: 'employee',
+    isManager: 'employee', 
     password: '' 
   });
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    const isManager = formData.role.toLowerCase() === 'manager';
+    const isManager = formData.isManager.toLowerCase() === 'manager';
     
     // Prepare payload for UserCreateView 
     const payload = {
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      password: formData.password,
-      isManager: isManager
+      e_firstname: formData.firstname,
+      e_lastname: formData.lastname,
+      e_email: formData.email,
+      e_phone: formData.phone,
+      e_password: formData.password,
+      is_manager: isManager
     };
 
     try {
@@ -66,7 +66,7 @@ const Register = () => {
             <div className="relative">
               <select 
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-cyan-500 outline-none transition-all text-sm appearance-none cursor-pointer"
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                onChange={(e) => setFormData({...formData, isManager: e.target.value})}
               >
                 <option value="employee">Store Associate</option>
                 <option value="manager">Division Manager</option>
@@ -83,7 +83,7 @@ const Register = () => {
               required
               placeholder="John"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-cyan-500 outline-none transition-all text-sm"
-              onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+              onChange={(e) => setFormData({...formData, firstname: e.target.value})}
             />
           </div>
           <div>
@@ -93,7 +93,7 @@ const Register = () => {
               required
               placeholder="Doe"
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:ring-1 focus:ring-cyan-500 outline-none transition-all text-sm"
-              onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+              onChange={(e) => setFormData({...formData, lastname: e.target.value})}
             />
           </div>
           <div>
