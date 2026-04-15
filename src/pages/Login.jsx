@@ -87,6 +87,8 @@ const Login = ({ setUserRole }) => {
               type="password" 
               placeholder="••••"
               required
+              value={passwordValue} 
+              onChange={(e) => setPasswordValue(e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all placeholder:text-slate-700"
             />
           </div>
