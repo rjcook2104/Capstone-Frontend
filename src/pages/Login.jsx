@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom'; // Added Link import
 const Login = ({ setUserRole }) => {
   const navigate = useNavigate();
   const [idValue, setIdValue] = useState("");
+  const [passwordValue, setPasswordValue] = useState("");
 
   const handleLogin = async (e) => {
     e.preventDefault();
