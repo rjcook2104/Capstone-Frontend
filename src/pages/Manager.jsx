@@ -23,7 +23,7 @@ const WebcamFeed = ({ isFocused, camId }) => {
     <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden rounded-xl">
       {!useLocal ? (
         <img 
-          src={`http://127.0.0.1:8000/api/video_feed/`} 
+          src={`http://localhost:8000/api/video_feed/`} 
           alt="AI Stream"
           className="w-full h-full object-cover"
           onError={() => setUseLocal(true)} // Fallback to local if backend fails
@@ -79,15 +79,23 @@ const Manager = ({ setUserRole }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await fetch('http://127.0.0.1:8000/api/users/logout/', { method: 'POST' });
-    } catch (error) {
-      console.log("Mock Logout active.");
-    } finally {
-      setUserRole(null);
-      navigate('/');
+  try {
+    const response = await fetch('http://localhost:8000/api/users/logout/', { 
+      method: 'POST',
+      credentials: 'include',
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Logout failed: ${response.status}`);
     }
-  };
+    
+    setUserRole(null);
+    navigate('/');
+  } catch (error) {
+    console.error("Logout error:", error);
+    // Show error toast/modal to user
+  }
+};
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-200 overflow-hidden font-sans">

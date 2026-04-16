@@ -11,8 +11,9 @@ const Learning = ({ userRole, setUserRole }) => {
     console.log("Terminating Employee Session...");
     try {
       // Logic: Hits the logout path defined in Django urlpatterns
-      await fetch('http://127.0.0.1:8000/api/users/logout/', {
+      await fetch('http://localhost:8000/api/users/logout/', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
