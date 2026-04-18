@@ -65,7 +65,7 @@ const Manager = ({ setUserRole }) => {
 
   const [alerts] = useState([
     { id: 1, camId: 1, employee: "John Doe", dept: "Electronics", level: "High", time: "2 mins ago", msg: "Verbal aggression detected" },
-    { id: 2, camId: 4, employee: "Sarah Smith", dept: "Customer Service", level: "Medium", time: "5 mins ago", msg: "Elevated voice volume" },
+    { id: 2, camId: 2, employee: "Sarah Smith", dept: "Customer Service", level: "Medium", time: "5 mins ago", msg: "Elevated voice volume" },
   ]);
 
   const addFeed = () => {
@@ -86,6 +86,25 @@ const Manager = ({ setUserRole }) => {
     } finally {
       setUserRole(null);
       navigate('/');
+    }
+  };
+
+  const handleResolveAlert = async (camId) => {
+    console.log(`Deactivating recording for CAM_0${camId}...`);
+    try {
+      // Logic: Send a POST request to stop the recording session
+      await fetch(`http://127.0.0.1:8000/api/recordings/stop/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ camera_id: camId })
+      });
+      
+      // UI Logic: Remove the red pulse/alert after the manager confirms it's over
+      // setAlerts(prev => prev.filter(a => a.camId !== camId)); 
+      alert(`Situation on CAM_0${camId} marked as RESOLVED. Recording saved.`);
+      
+    } catch (error) {
+      console.error("Backend failed to stop recording.");
     }
   };
 
@@ -126,6 +145,12 @@ const Manager = ({ setUserRole }) => {
               <div className="flex gap-2">
                 <button onClick={() => { setActiveTab('feeds'); setFocusedCam(alert.camId); }} className="flex-1 text-[9px] font-black py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white uppercase tracking-widest">
                   Focus Cam
+                </button>
+                <button 
+                  onClick={() => handleResolveAlert(alert.camId)}
+                  className="flex-1 text-[9px] font-black py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white uppercase"
+                >
+                  Resolve
                 </button>
               </div>
             </div>
