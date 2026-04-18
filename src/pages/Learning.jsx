@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/dashboard/SearchBar';
 
 const Learning = ({ userRole, setUserRole }) => {
   const navigate = useNavigate();
   
+  // NEW: State for assigned modules (replaces hardcoded list)
+  const [assignedModules, setAssignedModules] = useState([
+    { id: 402, title: 'Incident #BC-402', status: 'Active' },
+    { id: 101, title: 'Handling Aggression', status: 'Pending' },
+    { id: 102, title: 'Medical Emergency', status: 'Pending' }
+  ]);
+
   // Reflection State
   const [reflection, setReflection] = useState({
     trigger: '',
@@ -13,11 +20,10 @@ const Learning = ({ userRole, setUserRole }) => {
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // REVERTED: Keeping your original handleLogout exactly as provided
+  // REVERTED: Keeping original handleLogout logic
   const handleLogout = async () => {
     console.log("Terminating Employee Session...");
     try {
-      // Logic: Hits the logout path defined in Django urlpatterns
       await fetch('http://localhost:8000/api/users/logout/', {
         method: 'POST',
         credentials: 'include',
@@ -26,7 +32,6 @@ const Learning = ({ userRole, setUserRole }) => {
     } catch (error) {
       console.log("Mock Logout: Backend offline, clearing local state.");
     } finally {
-      // State Management: Clears global userRole to trigger App.jsx Route Guards
       if (typeof setUserRole === 'function') {
         setUserRole(null);
       }
@@ -64,15 +69,16 @@ const Learning = ({ userRole, setUserRole }) => {
             ← BACK TO OPS CENTER
           </button>
         )}
+        
         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6 flex items-center gap-2">
            <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
            Assigned Modules
         </h2>
         
         <div className="space-y-3">
-          {['Incident #BC-402', 'Handling Aggression', 'Medical Emergency'].map((module, i) => (
-            <div key={i} className={`p-4 rounded-xl border text-[11px] font-bold transition-all ${i === 0 ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-900/10' : 'border-slate-800 bg-slate-900/50 text-slate-500'}`}>
-              {module}
+          {assignedModules.map((module, i) => (
+            <div key={module.id} className={`p-4 rounded-xl border text-[11px] font-bold transition-all ${i === 0 ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400 shadow-lg shadow-cyan-900/10' : 'border-slate-800 bg-slate-900/50 text-slate-500'}`}>
+              {module.title}
             </div>
           ))}
         </div>
@@ -110,18 +116,23 @@ const Learning = ({ userRole, setUserRole }) => {
             <p className="text-slate-500 text-sm mt-2 font-medium">Review the AI-flagged incident and complete the mandatory Self-Reflection Scorecard.</p>
           </header>
 
+          {/* UPDATED: Dynamic Video Player pointing to Django API */}
           <div className="aspect-video bg-slate-900 rounded-[2rem] border border-slate-800 shadow-2xl relative overflow-hidden mb-10 group">
-            <div className="absolute inset-0 flex items-center justify-center z-10">
-               <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center backdrop-blur-xl border border-white/10 group-hover:scale-110 group-hover:bg-white/10 transition-all cursor-pointer">
-                  <div className="w-0 h-0 border-t-[12px] border-t-transparent border-l-[22px] border-l-cyan-500 border-b-[12px] border-b-transparent ml-2"></div>
-               </div>
-            </div>
+            <video 
+              className="w-full h-full object-contain" 
+              controls 
+              crossOrigin="anonymous"
+              preload="metadata"
+            >
+              <source src="http://localhost:8000/api/videos/2002/" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
             
-            <div className="absolute top-8 right-8 bg-red-600/20 border border-red-500/50 px-5 py-2.5 rounded-xl backdrop-blur-md z-20">
-               <span className="text-[10px] font-black text-red-500 animate-pulse tracking-[0.2em]">TENSION SPIKE DETECTED [82%]</span>
+            <div className="absolute top-8 right-8 bg-red-600/20 border border-red-500/50 px-5 py-2.5 rounded-xl backdrop-blur-md z-20 pointer-events-none">
+               <span className="text-[10px] font-black text-red-500 animate-pulse tracking-[0.2em]">
+                 ARCHIVED TENSION SPIKE [82%]
+               </span>
             </div>
-            
-            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 to-transparent"></div>
           </div>
 
           <section className="bg-slate-900/50 border border-slate-800 p-10 rounded-[2rem] shadow-2xl backdrop-blur-sm">
