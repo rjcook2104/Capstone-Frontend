@@ -3,8 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import DeviceStatus from '../components/dashboard/DeviceStatus';
 import SearchBar from '../components/dashboard/SearchBar';
 
+const mapAlertFromServer = (data) => {
+  const parsedCamId = Number.parseInt(data.camera_id, 10);
+  const camId = Number.isNaN(parsedCamId) ? data.camera_id : parsedCamId;
+
+  return {
+    event_id: data.event_id,
+    camId,
+    employee: data.employee_name || "Unknown",
+    msg: data.trigger_reason || data.reason || "Alert update",
+    time: "Just now",
+    level: "High"
+  };
+};
+
 // SUB-COMPONENT: The Live Feed Handler
-const WebcamFeed = ({ isFocused, camId }) => {
+const WebcamFeed = ({ camId }) => {
   const videoRef = useRef(null);
   const [useLocal, setUseLocal] = useState(false);
 
@@ -54,6 +68,7 @@ const Manager = ({ setUserRole }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('feeds');
   const [focusedCam, setFocusedCam] = useState(null);
+  const alertApiBase = 'http://localhost:8000';
 
   const [feeds, setFeeds] = useState([
     { id: 1, name: "CAM_01", employee: "John Doe" },
@@ -63,49 +78,83 @@ const Manager = ({ setUserRole }) => {
 
   // UPDATED: Alerts now include event_id to match Edge Pipeline UUIDs
   const [alerts, setAlerts] = useState([]);
+  const socketRef = useRef(null);
+  const [socketStatus, setSocketStatus] = useState('connecting');
+
+  const upsertAlert = (incomingAlert) => {
+    setAlerts(prev => {
+      const filtered = prev.filter(alert => alert.event_id !== incomingAlert.event_id);
+      return [incomingAlert, ...filtered];
+    });
+  };
+
+  const loadAlerts = async () => {
+    try {
+      const response = await fetch(`${alertApiBase}/api/users/alerts/`);
+      if (!response.ok) {
+        throw new Error(`Alert fetch failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setAlerts(data.map(mapAlertFromServer));
+    } catch (error) {
+      console.error('Alert fetch error:', error);
+    }
+  };
 
   useEffect(() => {
     // Connect to the Django Channels WebSocket
     const socket = new WebSocket('ws://localhost:8000/ws/alerts/');
+    socketRef.current = socket;
+    setSocketStatus('connecting');
+
+    socket.onopen = () => {
+      console.log('Connected to alert websocket.');
+      setSocketStatus('connected');
+    };
+
+    socket.onerror = (error) => {
+      console.error('Alert websocket error:', error);
+      setSocketStatus('error');
+    };
+
+    socket.onclose = () => {
+      setSocketStatus('closed');
+    };
 
     socket.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log('Alert websocket message:', data);
       
       // If the backend sends an 'incident_start' packet
       if (data.packet_type === "incident_start") {
-        const newAlert = {
-          event_id: data.event_id, // From edge_pipeline
-          camId: data.camera_id,
-          employee: data.employee_name || "Unknown",
-          msg: data.trigger_reason, // e.g., "Shout detected"
-          time: "Just now",
-          level: "High"
-        };
+        upsertAlert(mapAlertFromServer(data));
+      }
 
-        // Add the new alert to the sidebar automatically
-        setAlerts(prev => [newAlert, ...prev]);
+      if (data.packet_type === "incident_resolved") {
+        setAlerts(prev => prev.filter(alert => alert.event_id !== data.event_id));
       }
     };
 
-    return () => socket.close();
+    return () => {
+      socket.close();
+      socketRef.current = null;
+    };
   }, []);
 
   // Inside the Manager component
-  const triggerTestAlert = () => {
-    const testEventId = `TEST-${Math.floor(Math.random() * 1000)}`;
-    
-    const mockEdgeAlert = {
-      id: Date.now(),
-      event_id: testEventId, // Simulating uuid4() from edge_pipeline
-      camId: 1,
-      employee: "John Doe (TEST)",
-      msg: "SIMULATED: Shout detected (confidence=0.92)", // trigger_reason format
-      time: "Just now",
-      level: "High"
-    };
+  const triggerTestAlert = async () => {
+    const cameraId = focusedCam ?? feeds[0]?.id ?? 1;
+    const matchedFeed = feeds.find(feed => feed.id === cameraId);
 
-    // Prepend the alert so it appears at the top of the sidebar
-    setAlerts(prev => [mockEdgeAlert, ...prev]);
+    try {
+      window.setTimeout(() => {
+        loadAlerts();
+      }, 250);
+    } catch (error) {
+      console.error('Test alert error:', error);
+      alert('Unable to trigger the backend test alert. Make sure the backend is running with alert testing enabled.');
+    }
   };
 
   const addFeed = () => {
@@ -141,7 +190,7 @@ const Manager = ({ setUserRole }) => {
   const handleResolveAlert = async (eventId, camId) => {
     console.log(`Resolving incident ${eventId} on CAM_0${camId}...`);
     try {
-      const response = await fetch(`http://localhost:8000/api/recordings/stop/`, {
+      const response = await fetch(`${alertApiBase}/api/recordings/stop/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -155,9 +204,12 @@ const Manager = ({ setUserRole }) => {
         // UI Logic: Remove alert from sidebar
         setAlerts(prev => prev.filter(a => a.event_id !== eventId));
         alert(`Incident ${eventId} resolved. Edge pipeline finalizing tail recording.`);
+      } else {
+        throw new Error(`Resolve failed: ${response.status}`);
       }
     } catch (error) {
-      console.error("Backend failed to stop recording.");
+      console.error("Backend failed to stop recording.", error);
+      alert('Unable to resolve the alert through the backend.');
     }
   };
 
@@ -180,11 +232,18 @@ const Manager = ({ setUserRole }) => {
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             Tension Alerts
           </h2>
-          {focusedCam && (
-            <button onClick={() => setFocusedCam(null)} className="text-[10px] text-cyan-500 hover:text-cyan-400 font-bold uppercase underline">
-              Reset Matrix
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            <span className={`text-[9px] font-black uppercase tracking-widest ${
+              socketStatus === 'connected' ? 'text-emerald-400' : 'text-amber-400'
+            }`}>
+              WS {socketStatus}
+            </span>
+            {focusedCam && (
+              <button onClick={() => setFocusedCam(null)} className="text-[10px] text-cyan-500 hover:text-cyan-400 font-bold uppercase underline">
+                Reset Matrix
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -254,7 +313,7 @@ const Manager = ({ setUserRole }) => {
                     className={`bg-slate-900/80 rounded-2xl border flex flex-col items-center justify-center relative group overflow-hidden shadow-lg transition-all duration-700
                       ${focusedCam === feed.id ? 'h-[60vh] border-cyan-500' : 'aspect-video border-slate-800 hover:border-cyan-500/50'}`}
                   >
-                    <WebcamFeed isFocused={focusedCam === feed.id} camId={feed.id} />
+                    <WebcamFeed camId={feed.id} />
                     <div className="absolute top-4 left-4 flex items-center gap-2 z-20">
                       <span className={`w-2 h-2 rounded-full ${focusedCam === feed.id ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}></span>
                       <span className="text-[10px] font-black uppercase tracking-widest bg-black/60 backdrop-blur-md px-2 py-1 rounded-md border border-white/10">
