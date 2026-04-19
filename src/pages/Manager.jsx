@@ -118,17 +118,22 @@ const Manager = ({ setUserRole }) => {
     if (focusedCam === id) setFocusedCam(null);
   };
 
+  // handleLogout logic
   const handleLogout = async () => {
+    console.log("Terminating Manager Session...");
     try {
-      const response = await fetch('http://localhost:8000/api/users/logout/', { 
+      await fetch('http://localhost:8000/api/users/logout/', {
         method: 'POST',
         credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
       });
-      if (!response.ok) throw new Error(`Logout failed: ${response.status}`);
-      setUserRole(null);
-      navigate('/');
     } catch (error) {
-      console.error("Logout error:", error);
+      console.log("Mock Logout: Backend offline, clearing local state.");
+    } finally {
+      if (typeof setUserRole === 'function') {
+        setUserRole(null);
+      }
+      navigate('/');
     }
   };
 
